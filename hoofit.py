@@ -9,26 +9,40 @@ def explore_paths(y, x, path="", visited=None):
     current_value = A[y, x]
     paths = []
 
-    #print(f"start: x={x}, y={y}, Value={current_value}, path={path} ")
+    #print(f"---Start: y={y},  x={x},  Value={current_value}, path={path} ")
     moved = False
     for dir in ['U', 'R', 'D', 'L']:
-        dy, dx = deltas[dir]
-        ny, nx = y + dy, x + dx
+        delta_y, delta_x = deltas[dir]
+
+        new_y = y + delta_y
+        new_x  = x + delta_x
+        new_x  = x + delta_x
+        #print(f"Going: {dir} delta_y={delta_y}, delta_x={delta_x}, new_y={new_y}, new_x={new_x}")
 
         if (
-            0 <= ny < A.shape[0]
-            and 0 <= nx < A.shape[1]
-            and 0 <= y < can_move[dir].shape[0]
-            and 0 <= x < can_move[dir].shape[1]
-            and can_move[dir][y, x] == 1
-            and (ny, nx) not in visited
+            0 <= new_y < A.shape[0]
+            and 0 <= new_x < A.shape[1]
+            and 0 <= y - 1 < can_move[dir].shape[0]
+            and 0 <= x - 1 < can_move[dir].shape[1]
         ):
-            moved = True
-            #print(f"moved={moved}, ny={ny}, ny={ny}, Value={A[ny, nx]}, path={path} ")
-            new_paths = explore_paths(ny, nx, path + dir, visited.copy())
-            paths.extend(new_paths)
+            #print(f"pre-move new_y={new_y}, new_x={new_x}, Old Value={A[y, x]} New Value={A[new_y, new_x]}, path={path}")
+            if (can_move[dir][y - 1, x -1 ] == 1
+            and (new_y, new_x) not in visited
+            ):
+                #print(f"can move: can_move[dir][y - 1, x - 1] = {can_move[dir][y - 1, x - 1]}, visited: {(new_y, new_x) in visited}")
+                moved = True
+                #print(f"moved=True, new_y={new_y}, new_x={new_x}, Old Value={A[y, x]} New Value={A[new_y, new_x]}, path={path}")
+                new_paths = explore_paths(new_y, new_x, path + dir, visited.copy())
+                paths.extend(new_paths)
+            #else:
+                #print(f"cannot move: can_move[dir][y - 1, x - 1] = {can_move[dir][y - 1, x -1]}, visited: {(new_y, new_x) in visited}")
+        #else:
+            #print(f"what is going on here? some dimension issue:  0 <= new_y < A.shape[0] { 0 <= new_y < A.shape[0]}, 0 <= new_x < A.shape[1]  {0 <= new_x < A.shape[1]  }, 0 <= y < can_move[dir].shape[0]  {0 <= y < can_move[dir].shape[0] }, 0 <= x < can_move[dir].shape[1]={ 0 <= x < can_move[dir].shape[1]} ")
+            #print(f"what is going on here? some dimension issue:  new_y ={new_y}, A.shape[0]={A.shape[0]}, new_x={new_x}, A.shape[1]={A.shape[1]}")
+
 
     if not moved:
+        # print(f"returning current_value={current_value}, moved={moved},  x={x}, y={y}")
         ends_at_9 = (current_value == 9)
         paths.append((path, ends_at_9))
 
