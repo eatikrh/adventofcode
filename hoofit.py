@@ -1,6 +1,40 @@
 import numpy as np
+import pandas as pd
 
-# Step 1: Define the original matrix A
+def explore_paths(y, x, path="", visited=None):
+    if visited is None:
+        visited = set()
+    visited.add((y, x))
+
+    current_value = A[y, x]
+    paths = []
+
+    #print(f"start: x={x}, y={y}, Value={current_value}, path={path} ")
+    moved = False
+    for dir in ['U', 'R', 'D', 'L']:
+        dy, dx = deltas[dir]
+        ny, nx = y + dy, x + dx
+
+        if (
+            0 <= ny < A.shape[0]
+            and 0 <= nx < A.shape[1]
+            and 0 <= y < can_move[dir].shape[0]
+            and 0 <= x < can_move[dir].shape[1]
+            and can_move[dir][y, x] == 1
+            and (ny, nx) not in visited
+        ):
+            moved = True
+            #print(f"moved={moved}, ny={ny}, ny={ny}, Value={A[ny, nx]}, path={path} ")
+            new_paths = explore_paths(ny, nx, path + dir, visited.copy())
+            paths.extend(new_paths)
+
+    if not moved:
+        ends_at_9 = (current_value == 9)
+        paths.append((path, ends_at_9))
+
+    return paths
+
+# Original matrix
 A_original = np.array([
     [8, 9, 0, 1, 0, 1, 2, 3],
     [7, 8, 1, 2, 1, 8, 7, 4],
@@ -12,63 +46,78 @@ A_original = np.array([
     [1, 0, 4, 5, 6, 7, 3, 2]
 ])
 
-# Step 2: Pad A with 10s on all sides
-A = np.pad(A_original, pad_width=1, mode='constant', constant_values=10)
+# Pad the matrix with 10s
+A = np.pad(A_original, pad_width=1, mode='constant', constant_values=100)
 
-# Step 3: Create shifted matrices
-U = np.roll(A, shift=-1, axis=0)
-U[-1, :] = 0
-D = np.roll(A, shift=1, axis=0)
-D[0, :] = 0
-L = np.roll(A, shift=-1, axis=1)
-L[:, -1] = 0
-R = np.roll(A, shift=1, axis=1)
-R[:, 0] = 0
+U = np.roll(A, -1, axis=0); U[-1, :] = 0  # Up
+D = np.roll(A, +1, axis=0); D[0, :] = 0   # Down
+L = np.roll(A, -1, axis=1); L[:, -1] = 0  # Left
+R = np.roll(A, +1, axis=1); R[:, 0] = 0   # Right
 
-# Step 4: Compute directional difference matrices
-diff_U_A = (U - A == 1).astype(int)
-diff_D_A = (D - A == 1).astype(int)
-diff_L_A = (L - A == 1).astype(int)
-diff_R_A = (R - A == 1).astype(int)
+# Compute directional differences where neighbor = self + 1
+diffs = {
+    'U': (diff_U_A := (U - A == 1)),
+    'D': (diff_D_A := (D - A == 1)),
+    'L': (diff_L_A := (L - A == 1)),
+    'R': (diff_R_A := (R - A == 1))
+}
+#print("Diffs):")
+#print(diffs)
 
-direction_map = {
-    'U': (-1, 0, diff_U_A),
-    'D': (1, 0, diff_D_A),
-    'L': (0, -1, diff_L_A),
-    'R': (0, 1, diff_R_A)
+
+# Direction deltas
+deltas = {
+    'U': (-1, 0),
+    'D': (1, 0),
+    'L': (0, -1),
+    'R': (0, 1)
 }
 
-# Step 5: Locate all A == 0 positions (account for +1 padding)
+# All zero-valued starts (offset +1 for padding)
 zero_starts = [tuple(pos + 1) for pos in np.argwhere(A_original == 0)]
+print("Zero starts (in padded matrix A):")
+for start in zero_starts:
+    print(tuple(int(x) for x in start))
 
-# Step 6: Walk as far as possible from each A == 0 cell
-def walk_path_as_far_as_possible(start_y, start_x):
-    stack = [((start_y, start_x), "", set([(start_y, start_x)]))]
-    best_path = ""
-    max_value = A[start_y, start_x]
+# Notice we are getting the diffs in opposite direction
+can_move_up = np.roll(diffs['D'], shift=1, axis=0)
+can_move_down = np.roll(diffs['U'], shift=-1, axis=0)
+can_move_left = np.roll(diffs['R'], shift=1, axis=1)
+can_move_right = np.roll(diffs['L'], shift=-1, axis=1)
 
-    while stack:
-        (y, x), path, visited = stack.pop()
+print("A")
+print(A_original)
 
-        if A[y, x] > max_value:
-            max_value = A[y, x]
-            best_path = path
 
-        for dir_label, (dy, dx, diff_matrix) in direction_map.items():
-            ny, nx = y + dy, x + dx
-            if (
-                0 <= ny < A.shape[0] and
-                0 <= nx < A.shape[1] and
-                diff_matrix[ny, nx] == 1 and
-                (ny, nx) not in visited
-            ):
-                stack.append(((ny, nx), path + dir_label, visited | {(ny, nx)}))
+print("can_move_down")
+can_move_down = can_move_down[:-2, 1:-1]
+print(can_move_down.astype(int))
 
-    return best_path, max_value
+print("can_move_up")
+can_move_up = can_move_up[2:, 1:-1]
+print(can_move_up.astype(int))
 
-# Step 7: Save all longest partial paths
-with open("longest_partial_paths.txt", "w") as f:
+print("can move left")
+can_move_left = can_move_left[1:-1, 2:]
+print(can_move_left.astype(int))
+
+print("can move right")
+can_move_right = can_move_right[1:-1, :-2]
+print(can_move_right.astype(int))
+
+
+can_move = {
+    'U': can_move_up,
+    'D': can_move_down,
+    'L': can_move_left,
+    'R': can_move_right
+}
+
+# From all A == 0 starts
+with open("recursive_paths_from_0.txt", "w") as f:
     for start in zero_starts:
-        path, peak = walk_path_as_far_as_possible(*start)
-        if path:
-            f.write(f"{start} -> peak {peak}: {path}\n")
+        all_paths = explore_paths(*start)
+        for p, is_nine in all_paths:
+            f.write(f"{(int(start[0]), int(start[1]))}: {p} (ends at 9: {is_nine})\n")
+            if is_nine:
+                print(f"{(int(start[0]), int(start[1]))}: {p} (ends at 9: {is_nine})\n")
