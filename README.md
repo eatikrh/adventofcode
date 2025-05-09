@@ -1,4 +1,5 @@
 # Longest Uphill Paths in Matrix A
+This is a solution for  https://adventofcode.com/2024/day/10
 
 This project identifies all paths that start at cells with value `0` in a given matrix `A` and proceed through adjacent cells that are exactly `+1` greater at each step. It records the **longest such path** from each `0`-valued cell and reports the highest value reached.
 
