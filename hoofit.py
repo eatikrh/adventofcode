@@ -60,7 +60,6 @@ def explore_paths(y, x, path="", visited=None):
 #    [1, 0, 4, 5, 6, 7, 3, 2]
 #])
 
-import numpy as np
 
 # Convert your large matrix string into a 2D numpy array
 matrix_str = """
